@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block body %}
+  <form class="demo" action="/login" method="POST">
+    {% module xsrf_form_html() %}
+    <p>Try out Portier by entering your email address below:</p>
+    <input type=email name=email placeholder="you@example.com" />
+    <input type=submit value="Log In" />
+    <p><small><em>Try a Gmail and a non-Gmail address!</em></small></p>
+  </form>
+  <p><a href="/requires-authentication">Here</a> is a page that requires authentication.</p>
+  <p>Clicking on that link should redirect you to this login page (check your browser's address bar!), and after you log in you will be redirected to that page.</p>
+{% end %}
