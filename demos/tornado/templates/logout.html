@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+
+{% block body %}
+  <form class="demo" action="/logout" method="POST">
+    {% module xsrf_form_html() %}
+    <input type=submit value="Log out" />
+  </form>
+{% end %}
