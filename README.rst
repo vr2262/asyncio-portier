@@ -1,5 +1,5 @@
 Portier authentication Python helpers that are asyncio-aware
-=======================
+============================================================
 
 |travis| |master-coverage|
 
