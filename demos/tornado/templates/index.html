@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
 {% block body %}
-  <form class="demo" action="/login" method="POST">
+  <form class="demo" action="/login?next={{ next_page }}" method="POST">
     {% module xsrf_form_html() %}
     <p>Try out Portier by entering your email address below:</p>
     <input type=email name=email placeholder="you@example.com" />

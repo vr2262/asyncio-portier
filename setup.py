@@ -11,7 +11,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='asyncio-portier',
-    version='0.1.0',
+    version='0.1.0.post1',
     description='Portier authentication asyncio-aware Python helpers.',
     long_description=long_description,
     url='https://github.com/vr2262/asyncio-portier',

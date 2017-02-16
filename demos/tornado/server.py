@@ -7,7 +7,7 @@ https://github.com/portier/demo-rp/blob/master/server.py
 from asyncio import get_event_loop
 from datetime import timedelta
 from os import path
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import urlencode
 from uuid import uuid4
 
 from asyncio_portier import get_verified_email
@@ -65,7 +65,7 @@ class IndexHandler(BaseHandler):
         if self.current_user:
             self.render('verified.html')
             return
-        self.render('index.html')
+        self.render('index.html', next_page=self.get_argument('next', '/'))
 
 
 class LoginHandler(BaseHandler):
@@ -95,9 +95,7 @@ class LoginHandler(BaseHandler):
         """
         # Generate and store a nonce for this authentication request
         nonce = uuid4().hex
-        referer_query = urlparse(self.request.headers['Referer']).query
-        query_next = parse_qs(referer_query).get('next')
-        next_page = '/' if query_next is None else query_next[0]
+        next_page = self.get_argument('next', '/')
         expiration = timedelta(minutes=15)
         cache.set('portier:nonce:{}'.format(nonce), next_page, expiration)
 
