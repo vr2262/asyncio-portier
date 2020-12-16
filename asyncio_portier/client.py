@@ -4,6 +4,7 @@ import json
 import re
 import urllib.parse
 
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 import jwt
 
 from .cache import GenericCache, cache_delete, cache_get, cache_set
@@ -26,7 +27,9 @@ async def _async_get(url: str) -> str:
     return line.decode('latin1').rstrip()
 
 
-async def discover_keys(broker_url: str, cache: GenericCache) -> dict:
+async def discover_keys(
+    broker_url: str, cache: GenericCache
+) -> dict[str, RSAPublicKey]:
     """Discover and return Broker's public keys.
 
     Return a dict mapping from Key ID strings to Public Key instances.
@@ -128,4 +131,4 @@ async def get_verified_email(
     await cache_delete(cache, nonce_key)
 
     # Done!
-    return payload['sub'], redirect_uri #TypedDict email, next page
+    return payload['sub'], redirect_uri
