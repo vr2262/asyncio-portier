@@ -2,6 +2,7 @@ aioredis
 fakeredis
 flake8
 mypy
+pydocstyle
 pytest
 pytest-asyncio
 pytest-cover

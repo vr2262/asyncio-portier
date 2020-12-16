@@ -10,31 +10,41 @@ from typing import Optional, Protocol, Union, cast
 
 
 class BlockingCache(Protocol):  # pragma: no cover
-    def get(self, name: Union[str, bytes]) -> Union[None, str, bytes]: ...
+    """A protocol for the more-or-less redis cache object we need."""
+
+    def get(self, name: Union[str, bytes]) -> Union[None, str, bytes]:
+        """Retrieve a value from the cache by name."""
 
     def set(
         self,
         name: Union[str, bytes],
         value: Union[bytes, float, int, str],
         ex: Union[None, int, timedelta] = ...
-    ) -> Optional[bool]: ...
+    ) -> Optional[bool]:
+        """Set a value by name with optional expiration."""
 
-    def delete(self, *names: Union[str, bytes]) -> int: ...
+    def delete(self, *names: Union[str, bytes]) -> int:
+        """Delete values from the cache by name."""
 
 
 class AsyncCache(Protocol):  # pragma: no cover
+    """A protocol for the more-or-less aioredis cache object we need."""
+
     def get(
         self, name: Union[str, bytes]
-    ) -> Awaitable[Union[None, str, bytes]]: ...
+    ) -> Awaitable[Union[None, str, bytes]]:
+        """Retrieve an awaitable value from the cache by name."""
 
     def set(
         self,
         name: Union[str, bytes],
         value: Union[bytes, float, int, str],
         expire: int = ...  # why does aioredis do this???
-    ) -> Awaitable[Optional[bool]]: ...
+    ) -> Awaitable[Optional[bool]]:
+        """Set a value by name (expire is a kwarg?), returning an awaitable."""
 
-    async def delete(self, *names: Union[str, bytes]) -> Awaitable[int]: ...
+    async def delete(self, *names: Union[str, bytes]) -> Awaitable[int]:
+        """Delete values from the cache by name, returning an awaitable."""
 
 
 GenericCache = Union[BlockingCache, AsyncCache]
@@ -43,6 +53,7 @@ GenericCache = Union[BlockingCache, AsyncCache]
 async def cache_get(
     cache: GenericCache, name: Union[str, bytes]
 ) -> Optional[str]:
+    """Retrieve a value from the cache by name."""
     if isawaitable(_result := cache.get(name)):
         result = await cast(Awaitable[Union[None, str, bytes]], _result)
     else:
@@ -57,6 +68,7 @@ async def cache_set(
     value: Union[bytes, float, int, str],
     expiration: Union[None, int, timedelta] = timedelta(minutes=5).seconds,
 ) -> Optional[bool]:
+    """Set a value by name with default 5 minute expiration."""
     try:
         return cast(BlockingCache, cache).set(name, value, expiration)
     except TypeError:
@@ -73,6 +85,7 @@ async def cache_set(
 
 
 async def cache_delete(cache: GenericCache, name: Union[str, bytes]) -> int:
+    """Delete a value from the cache by name."""
     if isawaitable(result := cache.delete(name)):
         return await cast(Awaitable[int], result)
     return cast(int, result)
