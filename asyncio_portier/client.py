@@ -1,21 +1,20 @@
 """Portier helper functions."""
 import asyncio
-from datetime import timedelta
 import json
 import re
 import urllib.parse
 
-from portier.client import jwt
-from portier.utils import b64decode, jwk_to_rsa
+import jwt
+
+from .cache import GenericCache, cache_delete, cache_get, cache_set
+from .utils import b64decode, jwk_to_rsa
 
 
-async def _async_get_json(url, loop):
-    url = urllib.parse.urlsplit(url)
-    connect = asyncio.open_connection(url.hostname, 443, ssl=True, loop=loop)
+async def _async_get(url: str) -> str:
+    split = urllib.parse.urlsplit(url)
+    connect = asyncio.open_connection(split.hostname, 443, ssl=True)
     reader, writer = await connect
-    query = ('GET {url.path} HTTP/1.0\r\n'
-             'Host: {url.hostname}\r\n'
-             '\r\n').format(url=url)
+    query = f'GET {split.path} HTTP/1.0\r\nHost: {split.hostname}\r\n\r\n'
     writer.write(query.encode('latin-1'))
     line = b''
     while True:
@@ -24,10 +23,10 @@ async def _async_get_json(url, loop):
             break
         line = current_line
     writer.close()
-    return json.loads(line.decode('latin1').rstrip())
+    return line.decode('latin1').rstrip()
 
 
-async def discover_keys(broker_url, cache, loop):
+async def discover_keys(broker_url: str, cache: GenericCache) -> dict:
     """Discover and return Broker's public keys.
 
     Return a dict mapping from Key ID strings to Public Key instances.
@@ -45,36 +44,39 @@ async def discover_keys(broker_url, cache, loop):
     """
     # Check for the cache
     cache_key = 'portier:jwks:' + broker_url
-    jwks = cache.get(cache_key)
-    if not jwks:
+    if jwks := await cache_get(cache, cache_key):
+        jwks_dict = json.loads(jwks)
+    else:
         # Fetch Discovery Document
         url = broker_url.rstrip('/') + '/.well-known/openid-configuration'
-        discovery = await _async_get_json(url, loop)
+        discovery = json.loads(await _async_get(url))
         if 'jwks_uri' not in discovery:
             raise ValueError('No jwks_uri in discovery document')
 
         # Fetch JWK Set document, then decode and load it
-        jwks = await _async_get_json(discovery['jwks_uri'], loop)
-        if 'keys' not in jwks:
+        jwks = await _async_get(discovery['jwks_uri'])
+        jwks_dict = json.loads(jwks)
+        if 'keys' not in jwks_dict:
             raise ValueError('No keys found in JWK Set')
         # Viktor's notes:
         # portier-python tries to set jwks, which is a dict...
         # The dict doesn't really survive the round trip from redis
-        cache.set(cache_key, json.dumps(jwks), timedelta(minutes=5).seconds)
+        await cache_set(cache, cache_key, jwks)
 
     # Return the discovered keys as a Key ID -> RSA Public Key dictionary
-    # Viktor's notes:
-    # portier-python expects jwks to be a dict, but redis returns bytes
-    if isinstance(jwks, bytes):
-        jwks = json.loads(jwks.decode())
     return {
         key['kid']: jwk_to_rsa(key)
-        for key in jwks['keys']
+        for key in jwks_dict['keys']
         if key['alg'] == 'RS256'}
 
 
 async def get_verified_email(
-        broker_url, token, audience, issuer, cache, loop=None):
+    broker_url: str,
+    token: str,
+    audience: str,
+    issuer: str,
+    cache: GenericCache,
+) -> tuple[str, str]:
     """Validate an Identity Token (JWT) and return its subject (email address).
 
     In Portier, the subject field contains the user's verified email address.
@@ -93,15 +95,12 @@ async def get_verified_email(
     all claims except for ``sub`` and ``nonce``. Those are checked separately.
     .. _PyJWT: https://github.com/jpadilla/pyjwt
     """
-    if loop is None:
-        loop = asyncio.get_event_loop()
-
     # Retrieve this broker's public keys
-    keys = await discover_keys(broker_url, cache, loop)
+    keys = await discover_keys(broker_url, cache)
 
     # Locate the specific key used to sign this JWT via its ``kid`` header.
     raw_header, _, _ = token.partition('.')
-    header = json.loads(b64decode(raw_header.encode('ascii')).decode('utf-8'))
+    header = json.loads(b64decode(raw_header).decode('utf-8'))
     try:
         pub_key = keys[header['kid']]
     except KeyError:
@@ -123,10 +122,10 @@ async def get_verified_email(
 
     # Invalidate the nonce used in this JWT to prevent re-use
     nonce_key = "portier:nonce:%s" % payload['nonce']
-    redirect_uri = cache.get(nonce_key)
+    redirect_uri = await cache_get(cache, nonce_key)
     if not redirect_uri:
         raise ValueError('Invalid, expired, or re-used nonce')
-    cache.delete(nonce_key)
+    await cache_delete(cache, nonce_key)
 
     # Done!
-    return payload['sub'], redirect_uri
+    return payload['sub'], redirect_uri #TypedDict email, next page

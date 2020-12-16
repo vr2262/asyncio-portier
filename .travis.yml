@@ -1,18 +1,20 @@
 language: python
 python:
-  - "3.5"
+  - "3.9"
 cache: pip
 
 install:
-  - pip install -e .[dev,test]
+  - pip install -e .
+  - pip install -r requirements-dev.txt
   - pip install codecov
 
 before_script:
   - python -m flake8 . 
   - python -m pydocstyle .
+  - python -m mypy asyncio_portier
 
 script:
-  - coverage run --source=asyncio_portier --branch -m unittest
+  - coverage run --source=asyncio_portier --branch -m pytest
   - coverage report -m
 
 after_success:
