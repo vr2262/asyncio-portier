@@ -61,9 +61,7 @@ async def discover_keys(
         jwks_dict = json.loads(jwks)
         if 'keys' not in jwks_dict:
             raise ValueError('No keys found in JWK Set')
-        # Viktor's notes:
-        # portier-python tries to set jwks, which is a dict...
-        # The dict doesn't really survive the round trip from redis
+
         await cache_set(cache, cache_key, jwks)
 
     # Return the discovered keys as a Key ID -> RSA Public Key dictionary
