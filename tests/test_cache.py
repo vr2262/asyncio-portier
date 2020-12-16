@@ -4,7 +4,7 @@ import fakeredis
 import fakeredis.aioredis
 import pytest
 
-from asyncio_portier.cache import cache_get, cache_set, cache_delete
+from asyncio_portier.cache import cache_delete, cache_get, cache_set
 
 
 @pytest.fixture

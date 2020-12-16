@@ -4,8 +4,8 @@ This tries to smooth out type-hinting and signature variations among caches.
 For the moment, that means redis and aioredis.
 """
 from collections.abc import Awaitable
-from inspect import isawaitable
 from datetime import timedelta
+from inspect import isawaitable
 from typing import Optional, Protocol, Union, cast
 
 

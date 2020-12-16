@@ -1,10 +1,10 @@
 import json
-from unittest.mock import patch, AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
+
 import pytest
 
-from asyncio_portier.client import (
-    _async_get, discover_keys, get_verified_email
-)
+from asyncio_portier.client import (_async_get, discover_keys,
+                                    get_verified_email)
 
 BROKER_URL = "http://broker-url.tld/"
 TOKEN = "eyJraWQiOiAiYWJjIn0.foo.bar"

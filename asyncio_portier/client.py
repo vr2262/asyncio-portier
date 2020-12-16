@@ -4,8 +4,8 @@ import json
 import re
 import urllib.parse
 
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 import jwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
 from .cache import GenericCache, cache_delete, cache_get, cache_set
 from .utils import b64decode, jwk_to_rsa
