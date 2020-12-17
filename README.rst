@@ -1,15 +1,9 @@
 Portier authentication Python helpers that are asyncio-aware
 ============================================================
 
-|travis| |master-coverage|
+|coverage|
 
-.. |travis| image:: https://travis-ci.org/vr2262/asyncio-portier.svg?branch=master
-    :target: https://travis-ci.org/vr2262/asyncio-portier
-
-.. |master-coverage| image::
-    https://codecov.io/gh/vr2262/asyncio-portier/branch/master/graph/badge.svg
-    :alt: Coverage
-    :target: https://codecov.io/gh/vr2262/asyncio-portier
+.. |coverage| image:: https://github.com/vr2262/asyncio-portier/workflows/Python%20tests%20and%20coverage/badge.svg
 
 *asyncio-portier* is a set of helpers for `the Portier Identity Provider
 <https://portier.github.io/>`_. It is based on `the portier-python package
