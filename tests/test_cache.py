@@ -14,7 +14,10 @@ def blocking_cache():
 
 @pytest.fixture
 async def async_cache():
-    return await fakeredis.aioredis.create_redis_pool()
+    cache = await fakeredis.aioredis.create_redis_pool()
+    yield cache
+    cache.close()
+    await cache.wait_closed()
 
 
 @pytest.mark.asyncio
