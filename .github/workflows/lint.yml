@@ -1,4 +1,4 @@
-name: Python package
+name: Python lint
 
 on: [push]
 
@@ -21,18 +21,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .
         pip install -r dev-requirements.txt
-        pip install codecov
     - name: Lint with flake8
       run: |
         python -m flake8 .
-    - name: Lint docs
-      run: |
-        python -m pydocstyle .
-    - name: Check types with mypy
-      run: |
-        python -m mypy asyncio_portier
-    - name: Run tests with coverage
-      run: |
-        coverage run --source=asyncio_portier --branch -m pytest
-        coverage report -m
-    - uses: codecov/codecov-action@v1
