@@ -3,8 +3,8 @@
 Implementation taken from https://github.com/portier/portier-python/blob/
 c1f966f61c9c31572711dc0688b78aa93341f610/portier/utils.py
 """
-import codecs
 from base64 import urlsafe_b64decode
+import codecs
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa

@@ -10,14 +10,12 @@ from os import path
 from urllib.parse import urlencode
 from uuid import uuid4
 
-from asyncio_portier import get_verified_email
-
 import fakeredis
-
 from tornado.options import define, options
 from tornado.platform.asyncio import AsyncIOMainLoop
 import tornado.web
 
+from asyncio_portier import get_verified_email
 
 define('port', default=8888, help='run on the given port', type=int)
 
