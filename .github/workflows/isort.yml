@@ -1,4 +1,4 @@
-name: Isort
+name: Check import sort
 
 on:
   - push
