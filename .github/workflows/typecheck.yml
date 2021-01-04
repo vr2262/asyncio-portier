@@ -22,4 +22,4 @@ jobs:
         pip install -r requirements-dev.txt
     - name: Check types with mypy
       run: |
-        mypy asyncio_portier
+        mypy

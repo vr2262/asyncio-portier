@@ -21,4 +21,4 @@ jobs:
         pip install pydocstyle
     - name: Lint docs
       run: |
-        pydocstyle .
+        pydocstyle
