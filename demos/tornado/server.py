@@ -56,6 +56,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @property
     def cache(self) -> AsyncCache:
+        """Return the application's aioredis cache."""
         return self.application.cache
 
     def get_current_user(self) -> Optional[bytes]:
@@ -101,10 +102,9 @@ class LoginHandler(BaseHandler):
         """
         # Generate and store a nonce for this authentication request
         nonce = uuid4().hex
-        key = f'portier:nonce:{nonce}'
         next_page = self.get_argument('next', '/')
         expire = timedelta(minutes=15).seconds
-        await self.cache.set(key, next_page, expire=expire)
+        await self.cache.set(f'portier:nonce:{nonce}', next_page, expire=expire)
 
         # Forward the user to the broker, along with all necessary parameters
         query_args = urlencode({

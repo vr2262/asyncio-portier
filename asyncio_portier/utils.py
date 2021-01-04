@@ -26,7 +26,7 @@ def b64decode(text: str) -> bytes:
     return urlsafe_b64decode(binary)
 
 
-def jwk_to_rsa(key: dict) -> rsa.RSAPublicKey:
+def jwk_to_rsa(key: dict[str, str]) -> rsa.RSAPublicKey:
     """Convert a deserialized JWK into an RSA Public Key instance."""
     e = int(codecs.encode(b64decode(key['e']), 'hex'), 16)
     n = int(codecs.encode(b64decode(key['n']), 'hex'), 16)
