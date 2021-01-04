@@ -28,6 +28,7 @@ setup(
     keywords='web services',
     packages=['asyncio_portier'],
     package_data={'asyncio_portier': ['py.typed']},
+    zip_safe=False,
     install_requires=['cryptography', 'PyJWT'],
     extras_require={},
 )
