@@ -1,3 +1,4 @@
+aioredis
 asyncio-portier
 fakeredis
 tornado
