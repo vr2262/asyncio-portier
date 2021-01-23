@@ -1,0 +1,8 @@
+aioredis
+fakeredis
+flake8-bugbear
+mypy
+pydocstyle
+pytest
+pytest-asyncio
+pytest-cover

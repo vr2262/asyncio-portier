@@ -4,41 +4,43 @@
 A mashup of https://github.com/tornadoweb/tornado/tree/master/demos/blog and
 https://github.com/portier/demo-rp/blob/master/server.py
 """
-from asyncio import get_event_loop
+from __future__ import annotations
+
 from datetime import timedelta
-from os import path
+from pathlib import Path
+from typing import Any, Optional
 from urllib.parse import urlencode
 from uuid import uuid4
 
-from asyncio_portier import get_verified_email
-
-import fakeredis
-
+import fakeredis.aioredis
+import tornado.ioloop
+import tornado.locks
 from tornado.options import define, options
-from tornado.platform.asyncio import AsyncIOMainLoop
 import tornado.web
 
+from asyncio_portier import get_verified_email
+from asyncio_portier.cache import AsyncCache
 
 define('port', default=8888, help='run on the given port', type=int)
 
 broker_url = 'https://broker.portier.io'
-here = path.abspath(path.dirname(__file__))
-cache = fakeredis.FakeStrictRedis()
+parent_path = Path(__file__) / '..'
 
 
 class Application(tornado.web.Application):
     """The Application class for the server."""
 
-    def __init__(self):
+    def __init__(self, cache: AsyncCache) -> None:
         """Define the endpoints and application settings."""
-        handlers = [
+        self.cache = cache
+        handlers: tornado.routing._RuleList = [
             (r'/', IndexHandler),
             (r'/login', LoginHandler),
             (r'/verify', VerifyHandler),
             (r'/logout', LogoutHandler),
             (r'/requires-authentication', RequiresAuthenticationHandler)]
-        settings = {
-            'template_path': path.join(here, 'templates'),
+        settings: dict[str, Any] = {
+            'template_path': parent_path / 'templates',
             'xsrf_cookies': True,
             'cookie_secret': '__TODO:_GENERATE_YOUR_OWN_RANDOM_VALUE_HERE__',
             'login_url': '/login',
@@ -49,9 +51,15 @@ class Application(tornado.web.Application):
 class BaseHandler(tornado.web.RequestHandler):
     """The base class for handlers."""
 
-    audience = 'http://localhost:{}'.format(options.port)
+    application: Application
+    audience = f'http://localhost:{options.port}'
 
-    def get_current_user(self):
+    @property
+    def cache(self) -> AsyncCache:
+        """Return the application's aioredis cache."""
+        return self.application.cache
+
+    def get_current_user(self) -> Optional[bytes]:
         """Define current_user in templates."""
         return self.get_secure_cookie('user_email')
 
@@ -59,7 +67,7 @@ class BaseHandler(tornado.web.RequestHandler):
 class IndexHandler(BaseHandler):
     """The handler for the site index."""
 
-    def get(self):
+    def get(self) -> None:
         """Render the homepage."""
         # Check if the user has a session cookie
         if self.current_user:
@@ -71,15 +79,14 @@ class IndexHandler(BaseHandler):
 class LoginHandler(BaseHandler):
     """The handler for the login endpoint."""
 
-    def get(self):
+    def get(self) -> None:
         """Redirect GET /login to /."""
         url = '/'
-        next_page = self.get_argument('next', None)
-        if next_page is not None:
-            url += '?next={}'.format(next_page)
+        if (next_page := self.get_argument('next', None)) is not None:
+            url += f'?next={next_page}'
         self.redirect(url)
 
-    def post(self):
+    async def post(self) -> None:
         """Redirect to the broker to begin an Authentication Request.
 
         The specific parameters used in the Authentication Request are
@@ -96,8 +103,8 @@ class LoginHandler(BaseHandler):
         # Generate and store a nonce for this authentication request
         nonce = uuid4().hex
         next_page = self.get_argument('next', '/')
-        expiration = timedelta(minutes=15)
-        cache.set('portier:nonce:{}'.format(nonce), next_page, expiration)
+        expire = timedelta(minutes=15).seconds
+        await self.cache.set(f'portier:nonce:{nonce}', next_page, expire=expire)
 
         # Forward the user to the broker, along with all necessary parameters
         query_args = urlencode({
@@ -114,7 +121,7 @@ class LoginHandler(BaseHandler):
 class VerifyHandler(BaseHandler):
     """The handler for Portier verification endpoint."""
 
-    def check_xsrf_cookie(self):
+    def check_xsrf_cookie(self) -> None:
         """Disable XSRF check.
 
         OpenID doesn't reply with _xsrf header.
@@ -122,11 +129,11 @@ class VerifyHandler(BaseHandler):
         """
         pass
 
-    def get(self):
+    def get(self) -> None:
         """Redirect GET /verify to /."""
         self.redirect('/')
 
-    async def post(self):
+    async def post(self) -> None:
         """Validate an Identity Token and log the user in.
 
         If the token is valid and signed by a trusted broker, you can directly
@@ -137,12 +144,10 @@ class VerifyHandler(BaseHandler):
         cookie.
         """
         # Check for an error coming from the upstream broker
-        error = self.get_argument('error', None)
-        if error is not None:
-            description = self.get_argument('error_description', None)
-            msg = 'Broker Error ({})'.format(error)
-            if description is not None:
-                msg += ': {}'.format(description)
+        if (error := self.get_argument('error', None)) is not None:
+            msg = f'Broker Error ({error})'
+            if (desc := self.get_argument('error_description', None)) is not None:
+                msg += f': {desc}'
             self.set_status(400)
             self.render('error.html', error=msg)
             return
@@ -157,7 +162,7 @@ class VerifyHandler(BaseHandler):
                 token,
                 self.audience,
                 broker_url,
-                cache)
+                self.cache)
         except ValueError as exc:
             self.set_status(400)
             self.render('error.html', error=exc)
@@ -179,11 +184,11 @@ class VerifyHandler(BaseHandler):
 class LogoutHandler(BaseHandler):
     """The handler for logout endpoint."""
 
-    def get(self):
+    def get(self) -> None:
         """Display a button that POSTS to /logout."""
         self.render('logout.html')
 
-    def post(self):
+    def post(self) -> None:
         """Clear session cookies."""
         self.clear_cookie('user_email')
         self.redirect('/')
@@ -193,18 +198,20 @@ class RequiresAuthenticationHandler(BaseHandler):
     """The handler for an example endpoint requiring authentication."""
 
     @tornado.web.authenticated
-    def get(self):
+    def get(self) -> None:
         """Render the example endpoint."""
         self.render('requires-authentication.html')
 
 
-def main():
+async def main() -> None:
     """Start the server."""
-    AsyncIOMainLoop().install()
-    Application().listen(options.port)
+    cache = await fakeredis.aioredis.create_redis_pool()
+    app = Application(cache)
+    app.listen(options.port)
+    shutdown_event = tornado.locks.Event()
     print('Web server running at http://localhost:{}'.format(options.port))
-    get_event_loop().run_forever()
+    await shutdown_event.wait()
 
 
 if __name__ == '__main__':
-    main()
+    tornado.ioloop.IOLoop.current().run_sync(main)
