@@ -2,6 +2,7 @@
 import asyncio
 import json
 import re
+from typing import cast
 import urllib.parse
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
@@ -109,7 +110,8 @@ async def get_verified_email(
 
     # Verify the JWT's signature and validate its claims
     try:
-        payload = jwt.decode(token, pub_key,
+        # jwt.decode's type hints are off, hence the cast
+        payload = jwt.decode(token, cast(str, pub_key),
                              algorithms=['RS256'],
                              audience=audience,
                              issuer=issuer,
