@@ -18,15 +18,15 @@ async def _async_get(url: str) -> str:
     reader, writer = await connect
     query = f'GET {split.path} HTTP/1.0\r\nHost: {split.hostname}\r\n\r\n'
     writer.write(query.encode('latin-1'))
-    while (current_line := await reader.readline()) and current_line != b'\r\n':
+    while (line := await reader.readline()) and line != b'\r\n':
         pass
 
-    line = b''
-    while current_line := await reader.readline():
-        line += current_line
+    result = b''
+    while line := await reader.readline():
+        result += line
 
     writer.close()
-    return line.decode('latin1').rstrip()
+    return result.decode('latin1').rstrip()
 
 
 async def discover_keys(
