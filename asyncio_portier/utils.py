@@ -30,4 +30,5 @@ def jwk_to_rsa(key: dict[str, str]) -> rsa.RSAPublicKey:
     """Convert a deserialized JWK into an RSA Public Key instance."""
     e = int(codecs.encode(b64decode(key['e']), 'hex'), 16)
     n = int(codecs.encode(b64decode(key['n']), 'hex'), 16)
-    return rsa.RSAPublicNumbers(e, n).public_key(default_backend())
+    backend = default_backend()  # type: ignore [no-untyped-call]
+    return rsa.RSAPublicNumbers(e, n).public_key(backend)

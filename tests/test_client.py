@@ -187,7 +187,9 @@ async def test_async_get(mock_open_connection):
     expected_result = '{"a": 1}'
     reader = Mock()
     reader.readline = AsyncMock()
-    reader.readline.side_effect = (expected_result.encode('latin-1'), b'')
+    reader.readline.side_effect = (
+        b'discard\r\n', b'\r\n', expected_result.encode('latin-1'), b''
+    )
 
     writer = Mock()
 
@@ -197,7 +199,7 @@ async def test_async_get(mock_open_connection):
 
     assert result == expected_result
 
-    assert reader.readline.call_count == 2
+    assert reader.readline.call_count == 4
 
     [write_args] = writer.write.call_args_list
     assert write_args.args == (

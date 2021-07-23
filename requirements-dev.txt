@@ -6,3 +6,4 @@ pydocstyle
 pytest
 pytest-asyncio
 pytest-cover
+types-setuptools
