@@ -18,12 +18,13 @@ async def _async_get(url: str) -> str:
     reader, writer = await connect
     query = f'GET {split.path} HTTP/1.0\r\nHost: {split.hostname}\r\n\r\n'
     writer.write(query.encode('latin-1'))
+    while (current_line := await reader.readline()) and current_line != b'\r\n':
+        pass
+
     line = b''
-    while True:
-        current_line = await reader.readline()
-        if not current_line:
-            break
-        line = current_line
+    while current_line := await reader.readline():
+        line += current_line
+
     writer.close()
     return line.decode('latin1').rstrip()
 
